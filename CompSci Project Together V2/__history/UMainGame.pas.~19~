@@ -1,0 +1,410 @@
+unit UMainGame;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.Imaging.pngimage,
+  Vcl.Imaging.GIFImg, Data.Bind.EngExt, Vcl.Bind.DBEngExt, System.Rtti,
+  System.Bindings.Outputs, Vcl.Bind.Editors, Data.Bind.Components, UGameOver, Math;
+
+type
+    TMainGameForm = class(TForm)
+      imgShipFrameFocus: TImage;
+      imgFrame1: TImage;
+      imgFrame2: TImage;
+      imgFrame3: TImage;
+      imgGameBackground: TImage;
+      imgGameBackground2Frame: TImage;
+      ThreadStart: TTimer;
+      imgStaticBackground: TImage;
+      imgLaserBolt: TImage;
+      CollisionCheck: TTimer;
+      ChangeShipImage: TTimer;
+      incrScore: TTimer;
+      procedure ThreadStartTimer(Sender: TObject);
+      procedure ChangeShipImageTimer(Sender: TObject);
+      procedure FormKeyPress(Sender: TObject; var Key: Char);
+      procedure CollisionHandler;
+      procedure incrScoreTimer(Sender: TObject);
+
+      public
+        Score : integer;
+    end;
+  var
+    SpaceshipXHigh, SpaceshipXLow, SpaceshipYLow, SpaceshipYHigh, AsteroidLeft, AsteroidTop, IncrNum, NumberIncr, AsteroidNum: integer;
+    MainGameForm: TMainGameForm;
+    Collision : Boolean;
+    BackgroundScrollThread: TThread;
+    ShipThread : TThread;
+    CreateAsteroidThread : TThread;
+    MoveAsteroidThread : TThread;
+    Asteroid : TImage;
+    CoordinateList : TThreadList;
+    function SetValues(SpaceshipXHigh, SpaceshipXLow, SpaceshipYHigh, SpaceshipYLow, AsteroidLeft, AsteroidTop : integer) : boolean;
+    function CollisionCheck(SpaceshipXHigh, SpaceshipXLow, SpaceshipYHigh, SpaceshipYLow, AsteroidLeft, AsteroidTop : integer) : boolean;
+
+implementation
+
+{$R *.dfm}
+
+  type TBackgroundScrollThread = class(TThread)
+    public
+      procedure Execute; override;
+      procedure MoveScreen;
+    end;
+    procedure TBackgroundScrollThread.Execute;
+      var Run : boolean;
+    begin
+      Run := True;
+      while Run = True do
+        begin
+          Sleep(1);
+          Synchronize(MoveScreen);
+        end;
+    end;
+  procedure TBackgroundScrollThread.MoveScreen;
+  begin
+    if MainGameForm.imgGameBackground.Left < -1920 then
+      begin
+      MainGameForm.imgGameBackground.Left := 0;
+      end
+    else if (MainGameForm.imgGameBackground2Frame.Left < 0) then
+      Begin
+        MainGameForm.imgGameBackground2Frame.Left := 1920;
+      End
+    else
+    MainGameForm.imgGameBackground.Left := MainGameForm.imgGameBackground.Left - 10;
+    MainGameForm.imgGameBackground2Frame.Left :=  MainGameForm.imgGameBackground2Frame.Left - 10;
+  end;
+
+//  type TLaser = class(TThread)
+//  var HasHit : boolean;
+//  public
+//    procedure Execute; Override;
+//    function MoveLaser(LaserX, LaserY : integer) : boolean;
+//    function CheckIfHit(LaserHeight : integer) : boolean;
+//  end;
+//  procedure TLaser.Execute;
+//  begin
+//
+//  end;
+//  function TLaser.MoveLaser;
+//  var Position, LaserHeight : integer;
+//  var AsteroidHit : boolean;
+//  begin
+//    Position := MainGameForm.imgLaserBolt.Left;
+//    AsteroidHit := False;
+//    LaserHeight := MainGameForm.imgLaserBolt.Height;
+//    while (Position < 1920) and (AsteroidHit = False) do
+//      MainGameForm.imgLaserBolt.Left := MainGameForm.imgLaserBolt.Left + 30;
+//      AsteroidHit := CheckIfHit(LaserHeight);
+//  end;
+//
+//  function TLaser.CheckIfHit(LaserHeight : integer) : boolean;
+//  var LaserEdge : array[0..33] of TPoint;
+//  var A, B, I, YPoint, XPoint : integer;
+//  begin
+//    XPoint := MainGameForm.imgLaserBolt.Left;
+//    begin
+//      I := 0;
+//      YPoint := MainGameForm.imgLaserBolt.Top;
+//      for A := 0 to 33 do
+//        begin
+//          for B := 0 to 33 do
+//            begin
+//              begin
+//                LaserEdge[I].X := XPoint;
+//                LaserEdge[I].Y := YPoint;
+//                I := I + 1;
+//              end;
+//            YPoint := YPoint + 1;
+//            end;
+//        end;
+//
+//    end;
+//  end;
+
+
+
+  type TShipThread = class(TThread)
+  var IncrNum : integer;
+  public
+    procedure Execute; Override;
+    procedure IncrImage;
+    end;
+ procedure TShipThread.Execute;
+    var Run : Boolean;
+    begin
+      Run := True;
+      IncrNum := 1;
+      while Run = True do
+        begin
+        Synchronize(IncrImage);
+        IncrNum := IncrNum + 1;
+        Sleep(80);
+        end;
+    end;
+  procedure TShipThread.IncrImage;
+    var Run : Boolean;
+    begin
+      begin
+          if IncrNum = 1 then
+            begin
+              MainGameForm.imgShipFrameFocus.Picture := MainGameForm.imgFrame1.Picture;
+            end
+        else if IncrNum = 2 then
+          begin
+            MainGameForm.imgShipFrameFocus.Picture := MainGameForm.imgFrame2.Picture;
+          end
+        else if IncrNum = 3 then
+          begin
+            MainGameForm.imgShipFrameFocus.Picture := MainGameForm.imgFrame3.Picture;
+            IncrNum := 1;
+          end
+      end;
+    end;
+
+
+procedure TMainGameForm.ChangeShipImageTimer(Sender: TObject);
+begin
+  if IncrNum = 1 then
+    begin
+      MainGameForm.imgShipFrameFocus.Picture := MainGameForm.imgFrame1.Picture;
+    end
+  else if IncrNum = 2 then
+    begin
+      MainGameForm.imgShipFrameFocus.Picture := MainGameForm.imgFrame2.Picture;
+    end
+  else if IncrNum = 3 then
+    begin
+      MainGameForm.imgShipFrameFocus.Picture := MainGameForm.imgFrame3.Picture;
+      IncrNum := 1;
+    end
+end;
+
+
+type TMoveAsteroidThread = class(TThread)
+  public
+    procedure execute; override;
+    procedure MoveAsteroids;
+end;
+
+procedure TMoveAsteroidThread.MoveAsteroids;
+var AsteroidList : TList;
+var I : integer;
+var CollisionCheck : boolean;
+begin
+  AsteroidList := CoordinateList.LockList;
+  try
+    if AsteroidList.Count <> 0 then
+      begin
+        for I := 0 to AsteroidList.Count - 1 do
+          begin
+            TImage(AsteroidList.Items[I]).Left := TImage(AsteroidList.Items[I]).Left - 25;
+            CollisionCheck := UMainGame.SetValues(SpaceshipXHigh, SpaceshipXLow, SpaceshipYHigh, SpaceshipYLow, TImage(AsteroidList[I]).Left, TImage(AsteroidList[I]).Top);
+            if CollisionCheck = True then
+              begin
+                MainGameForm.CollisionHandler;
+              end;
+          end;
+      if TImage(AsteroidList.Items[0]).Left < -225 then
+        begin
+          TImage(AsteroidList.Items[0]).Destroy;
+          AsteroidList.Delete(0);
+        end;
+      end;
+  finally
+    begin
+      CoordinateList.UnlockList;
+    end;
+  end;
+end;
+
+procedure TMoveAsteroidThread.Execute;
+var Run : boolean;
+begin
+  Run := True;
+  while Run = True do
+  begin
+  sleep(1);
+  synchronize(MoveAsteroids);
+  end;
+end;
+
+type TCreateAsteroidThread =  class(TThread)
+var Asteroid : TImage;
+var YCoord, XCoord, YPrevious, Num : integer;
+var AsteroidList : TList;
+public
+  procedure Execute; Override;
+  procedure CreateAsteroid;
+end;
+
+procedure TCreateAsteroidThread.CreateAsteroid;
+  begin
+    Num := RandomRange(1,4);
+    Asteroid := TImage.Create(Nil);
+    Asteroid.Parent := MainGameForm;
+    Asteroid.Name := 'Asteroid' + inttostr(AsteroidNum);
+    Asteroid.Visible := False;
+    Asteroid.Height := 225;
+    Asteroid.Width := 225;
+    if Num = 1 then
+      begin
+        Asteroid.Picture.LoadFromFile('E:\CompSci Project Together\Asteroid Sprites\Asteroid4.png')
+      end
+    else if Num = 2 then
+      begin
+        Asteroid.Picture.LoadFromFile('E:\CompSci Project Together\Asteroid Sprites\Asteroid4.png')
+      end
+    else if Num = 3 then
+     begin
+       Asteroid.Picture.LoadFromFile('E:\CompSci Project Together\Asteroid Sprites\Asteroid4.png')
+     end;
+    YCoord := RandomRange(100,1000);
+    if ((YPrevious - YCoord) < 100) then
+      begin
+      YCoord := RandomRange(100,1000);
+      end
+    else if ((YCoord - YPrevious) > 100) then
+      begin
+        YCoord := RandomRange(100,1040);
+      end
+    else
+    begin
+    Asteroid.Top := YCoord;
+    Asteroid.Stretch := True;
+    Asteroid.Proportional := True;
+    Asteroid.Left := XCoord;
+    Asteroid.Visible := True;
+    Asteroid.BringToFront;
+    CoordinateList.Add(Asteroid);
+    YPrevious := YCoord;
+    end;
+  end;
+
+procedure TCreateAsteroidThread.Execute;
+var Run : boolean;
+var I : integer;
+begin
+  AsteroidNum := 3;
+  Run := True;
+  XCoord := 1920;
+  while Run = True do
+    begin
+      Sleep(1750);
+      XCoord := XCoord + 150;
+      for I := 0 to (AsteroidNum + 1) do
+        begin
+          sleep(500);
+          YPrevious := 1000;
+          CreateAsteroid;
+          AsteroidNum := AsteroidNum + 1;
+        end;
+    end;
+end;
+
+function CollisionCheck(SpaceshipXHigh, SpaceshipXLow, SpaceshipYHigh, SpaceshipYLow, AsteroidLeft, AsteroidTop : integer) : boolean;
+var SpaceShipArea : Array[0..11025] of TPoint;
+var Xa, Ya, A, B, I, Z, C, AsteroidHighX, AsteroidLowX, AsteroidHighY, AsteroidLowY : integer;
+var AsteroidRect : TRect;
+begin
+  Xa := SpaceshipXlow;
+  Ya := SpaceshipYLow;
+  begin
+    AsteroidLowX := AsteroidLeft;
+    AsteroidHighX := AsteroidLowX + 225;
+    AsteroidHighY := AsteroidTop;
+    AsteroidLowY := AsteroidHighY - 225;
+    AsteroidRect := Rect(AsteroidlowX, AsteroidLowY, AsteroidHighX, AsteroidHighY);
+    I := 0;
+    for A := 0 to 225 do
+      begin
+        for B := 0 to 225 do
+          begin
+            SpaceShipArea[I].X := SpaceshipXLow;
+            SpaceshipXLow := SpaceshipXLow + 1;
+            SpaceshipArea[I].Y := SpaceshipYLow;
+            I := I + 1;
+          end;
+        SpaceshipYLow:= SpaceshipYLow + 1;
+        SpaceshipXLow := Xa;
+      end;
+      SpaceshipYLow := Ya;
+      A := 0;
+      for Z := 0 to length(SpaceshipArea) do
+        begin
+          if PtInRect(AsteroidRect,SpaceshipArea[Z]) = True then
+            begin
+              CollisionCheck := True;
+              Break
+            end;
+        end;
+  end;
+end;
+
+function SetValues(SpaceshipXHigh, SpaceshipXLow, SpaceshipYHigh, SpaceshipYLow, AsteroidLeft, AsteroidTop : integer) : boolean;
+var Check : boolean;
+begin
+  SpaceshipXLow := MainGameForm.imgShipFrameFocus.Left;
+  SpaceshipXHigh := MainGameForm.imgShipFrameFocus.Left + 105;
+  SpaceshipYLow := MainGameForm.imgShipFrameFocus.Top;
+  SpaceshipYHigh := MainGameForm.imgShipFrameFocus.Top + 105;
+  Check := CollisionCheck(SpaceshipXLow, SpaceshipYLow, SpaceshipXHigh, SpaceshipYHigh, AsteroidLeft, AsteroidTop);
+  if Check = True then
+    begin
+      SetValues := True
+    end
+  else SetValues := False;
+end;
+
+procedure TMainGameForm.CollisionHandler;
+begin
+  GameOver.Show;
+  if UGameOver.CloseGame = True then
+    begin
+      GameOver.Close;
+      MainGameForm.Close;
+    end;
+end;
+
+procedure TMainGameForm.FormKeyPress(Sender: TObject; var Key: Char);
+begin
+  if Key in ['w', 'W'] then
+    begin
+      MainGameForm.imgShipFrameFocus.Top := MainGameForm.imgShipFrameFocus.Top - 10;
+    end;
+  if Key in ['s', 'S'] then
+    begin
+      MainGameForm.imgShipFrameFocus.Top := MainGameForm.imgShipFrameFocus.Top + 10;
+    end;
+  if Key in ['d', 'D'] then
+    begin
+      MainGameForm.imgShipFrameFocus.Left := MainGameForm.imgShipFrameFocus.Left + 10;
+    end;
+  if Key in ['a', 'A'] then
+    begin
+      MainGameForm.imgShipFrameFocus.Left := MainGameForm.imgShipFrameFocus.Left - 10;
+    end;
+end;
+
+procedure TMainGameForm.incrScoreTimer(Sender: TObject);
+begin
+  Score := Score + 1;
+end;
+
+procedure TMainGameForm.ThreadStartTimer(Sender: TObject);
+begin
+  imgStaticBackground.SendToBack;
+  BackgroundScrollThread := TBackgroundScrollThread.Create(false);
+  ShipThread := TShipThread.Create(false);
+  CreateAsteroidThread := TCreateAsteroidThread.Create(false);
+  MoveAsteroidThread := TMoveAsteroidThread.Create(false);
+  ThreadStart.Enabled := False;
+end;
+
+begin
+  IncrNum := 1;
+  CoordinateList := TThreadList.Create;
+end.

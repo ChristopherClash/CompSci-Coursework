@@ -1,0 +1,16 @@
+program ScreenScrollTest;
+
+uses
+  Vcl.Forms,
+  UMainGame in 'UMainGame.pas' {MainGameForm},
+  UMenu in 'UMenu.pas' {MenuScreen};
+
+{$R *.res}
+
+begin
+  Application.Initialize;
+  Application.MainFormOnTaskbar := True;
+  Application.CreateForm(TMainGameForm, MainGameForm);
+  Application.CreateForm(TMenuScreen, MenuScreen);
+  Application.Run;
+end.

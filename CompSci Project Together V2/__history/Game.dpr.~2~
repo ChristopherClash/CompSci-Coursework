@@ -1,0 +1,16 @@
+program Game;
+
+uses
+  Vcl.Forms,
+  UMainGame in 'UMainGame.pas' {MainGameForm},
+  UGameOver in 'UGameOver.pas' {GameOver};
+
+{$R *.res}
+
+begin
+  Application.Initialize;
+  Application.MainFormOnTaskbar := True;
+  Application.CreateForm(TMainGameForm, MainGameForm);
+  Application.CreateForm(TGameOver, GameOver);
+  Application.Run;
+end.

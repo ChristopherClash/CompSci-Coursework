@@ -1,0 +1,40 @@
+unit UMenu;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Imaging.jpeg,
+  Vcl.ExtCtrls, Unit2;
+
+type
+  TMenuScreen = class(TForm)
+    TTitleImage: TImage;
+    TStartGameButton: TStaticText;
+    procedure TStartGameButtonClick(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+  private
+    {Private Declarations}
+  public
+  end;
+
+var
+  MenuScreen: TMenuScreen;
+implementation
+
+{$R *.dfm}
+//Use On Event to initialize timer
+
+
+procedure TMenuScreen.TStartGameButtonClick(Sender: TObject);
+var F2: TMainGameForm;
+ begin
+   F2 := TMainGameForm.Create(Application);
+   F2.Show{Modal};
+   F2.Free;
+   Hide;
+ end;
+ end.
+
+
+

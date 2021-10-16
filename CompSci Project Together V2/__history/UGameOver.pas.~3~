@@ -1,0 +1,47 @@
+unit UGameOver;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
+  Vcl.Imaging.jpeg;
+
+type
+  TGameOver = class(TForm)
+    ExitGame: TButton;
+    Panel1: TPanel;
+    Logo: TImage;
+    GameOverMessage: TLabel;
+    ScoreMessage: TLabel;
+    procedure ExitGameClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  GameOver: TGameOver;
+  CloseGame : boolean;
+
+implementation
+
+{$R *.dfm}
+
+uses UMainGame;
+
+procedure TGameOver.ExitGameClick(Sender: TObject);
+begin
+  CloseGame := True;
+end;
+
+procedure TGameOver.FormShow(Sender: TObject);
+var EndScore : integer;
+begin
+  EndScore := MainGameForm.Score;
+  ScoreMessage.Caption := 'Your score was ' + inttostr(EndScore);
+end;
+
+end.

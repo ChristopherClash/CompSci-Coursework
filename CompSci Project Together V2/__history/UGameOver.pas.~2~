@@ -1,0 +1,35 @@
+unit UGameOver;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Unit2, Vcl.ExtCtrls,
+  Vcl.Imaging.jpeg;
+
+type
+  TGameOver = class(TForm)
+    YouLose: TStaticText;
+    Button1: TButton;
+    Panel1: TPanel;
+    Image1: TImage;
+    procedure Button1Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  GameOver: TGameOver;
+  CloseGame : boolean;
+
+implementation
+
+{$R *.dfm}
+
+procedure TGameOver.Button1Click(Sender: TObject);
+begin
+  CloseGame := True;
+end;
+end.
